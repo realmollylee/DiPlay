@@ -668,6 +668,14 @@ class AdaptiveSettingsUiTest {
             assertFalse(text(it), text(it) in audio)
         }
         assertTrue(text(R.string.right_hand_drive) in vehicle)
+        // The corner radius is a Display setting; the in-session Safe area card repeats it there.
+        val corner = text(R.string.display_corner_radius)
+        // A choice row renders as "Title · value". The separator is DiPlay's own constant, so match the
+        // title followed by any separator instead of rebuilding that character here.
+        val cornerRow = Regex("^" + Regex.escape(corner) + " \\D")
+        assertTrue("display=$display", display.any { cornerRow.containsMatchIn(it) })
+        assertFalse("advanced=$advanced", advanced.any { cornerRow.containsMatchIn(it) })
+        assertFalse("vehicle=$vehicle", vehicle.any { cornerRow.containsMatchIn(it) })
         assertTrue(text(R.string.car_button_in_carplay) in vehicle)
         assertTrue(text(R.string.wheel_siri_key) in vehicle)
         assertTrue(text(R.string.settings_wheel_keys) in vehicle)

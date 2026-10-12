@@ -195,9 +195,13 @@
     <string name="done">تم</string>
     <string name="drag_to_move_pinch_to_zoom">اسحب للتحريك، وقرّب للتكبير</string>
     <string name="draw_outside_safe_area">الرسم خارج المنطقة الآمنة</string>
-    <string name="rect_fill_disable_safe_area">زوايا قائمة بلا منطقة آمنة</string>
-    <string name="rect_fill_disable_safe_area_description">يطلب من iPhone صورة بملء الشاشة بزوايا قائمة. جرّبه عندما يترك CarPlay شريطًا عند حافة الشاشة أو يُظهر لون الخلفية في زواياه المستديرة. لا تُستخدم المنطقة الآمنة أعلاه أثناء تشغيله. يُطبّق بعد الحفظ وإعادة الاتصال.</string>
-    <string name="safe_area_disabled_rect_fill_summary">المنطقة الآمنة: متوقفة (زوايا قائمة، ملء الشاشة)</string>
+    <string name="display_corner_radius">نصف قطر زوايا الشاشة</string>
+    <string name="display_corner_radius_value">%1$d%%</string>
+    <string name="display_corner_radius_square">زوايا قائمة</string>
+    <string name="display_corner_radius_description">يجعل زوايا الصورة مستديرة لتطابق إطار الشاشة، ويرسم بالأسود الزوايا التي لا تستطيع الشاشة عرضها. اجعله 0 لزوايا قائمة وملء الشاشة بدون منطقة آمنة. يُطبّق بعد الحفظ وإعادة الاتصال.</string>
+    <string name="display_corner_radius_description_square">زوايا قائمة: يملأ iPhone الشاشة بالكامل ولا تُستخدم المنطقة الآمنة أعلاه.</string>
+    <string name="settings_display_corner_radius_hint">مقدار استدارة زوايا الصورة، كنسبة مئوية من الضلع الأقصر للشاشة، لتطابق الصورة إطار الشاشة بدل أن يظهر لون الخلفية في الزوايا. القيمة 0 تُبقي الزوايا قائمة وملء الشاشة بدون منطقة آمنة. يُطبّق عند الاتصال التالي.</string>
+    <string name="display_corner_radius_summary">المنطقة الآمنة: متوقفة (نصف قطر الزوايا يحدّد شكل الشاشة)</string>
     <string name="driving_side">جانب القيادة</string>
     <string name="efficient_video">فيديو كفؤ</string>
     <string name="enable_the_car_s_bluetooth_and_pair_your_iphone_first">فعّل بلوتوث السيارة واقترن بـ iPhone أولاً.</string>

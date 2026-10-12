@@ -1841,6 +1841,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 { AirPlayPersistence.loadDisplayScalePercent(this) }, reconnects = true,
                 save = { AirPlayPersistence.saveDisplayScalePercent(this, it) },
             )
+            displayCornerRadiusControl(card)
             choice(card, getString(R.string.frame_rate), listOf(getString(R.string.s_30_fps_lighter_load), getString(R.string.s_60_fps_smoother_motion)), if (AirPlayPersistence.loadFps(this) == 60) 1 else 0) { AirPlayPersistence.saveFps(this, if (it == 1) 60 else 30) }
             carPlayDockControl(card)
             addSystemBarControls(
@@ -4774,6 +4775,64 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         appDialogBuilder().setTitle(title).setView(input)
             .setPositiveButton(getString(R.string.save)) { _, _ -> save(input.text.toString().let { if (secret) it else it.trim() }) }
             .setNegativeButton(getString(R.string.cancel), null).show()
+    }
+
+    /**
+     * The display's rounded corners, as a percentage of the screen's shorter side. A number rather than
+     * a slider so the entry matches the resolution control above it, and 0 is accepted as the square
+     * setting the retired in-session switch used to send.
+     */
+    private fun displayCornerRadiusControl(parent: LinearLayout) {
+        val title = getString(R.string.display_corner_radius)
+        fun summary(): String {
+            // loadPercent also carries the retired in-session switch's state over to 0.
+            val percent = DisplayCornerRadius.loadPercent(this)
+            return getString(
+                R.string.contrib_audio_home_choice_summary, title,
+                if (percent <= 0) getString(R.string.display_corner_radius_square)
+                else getString(R.string.display_corner_radius_value, percent),
+            )
+        }
+        val control = button(summary(), false) {}
+        control.setOnClickListener {
+            val fields = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
+            val input = EditText(appDialogContext()).apply {
+                setSingleLine()
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(DisplayCornerRadius.loadPercent(this@DiPlayActivity).toString())
+            }
+            fields.addView(input)
+            fields.addView(label(getString(R.string.settings_display_corner_radius_hint), 14, MUTED))
+            val dialog = appDialogBuilder().setTitle(title).setView(fields)
+                .setPositiveButton(getString(R.string.save), null)
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setNeutralButton(getString(R.string.resolution_reset_defaults), null).create()
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val value = input.text.toString().trim().toIntOrNull()
+                    if (value == null || value !in DisplayCornerRadius.MIN_PERCENT..DisplayCornerRadius.MAX_PERCENT) {
+                        input.error = getString(
+                            R.string.resolution_number_error,
+                            DisplayCornerRadius.MIN_PERCENT, DisplayCornerRadius.MAX_PERCENT,
+                        )
+                    } else {
+                        val changed = value != DisplayCornerRadius.loadPercent(this)
+                        DisplayCornerRadius.savePercent(this, value)
+                        control.text = summary()
+                        dialog.dismiss()
+                        // The panel's shape is declared in /info, which only a new session sends.
+                        if (changed) markReconnectNeeded()
+                    }
+                }
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    input.setText(DisplayCornerRadius.DEFAULT_PERCENT.toString())
+                    input.error = null
+                }
+            }
+            showResolutionSettingsDialog(dialog, fields)
+        }
+        parent.addView(control, matchButton(0, 60))
+        parent.addView(space(12))
     }
 
     private fun resolutionSettingControl(

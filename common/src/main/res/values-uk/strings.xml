@@ -200,9 +200,13 @@
     <string name="done">Готово</string>
     <string name="drag_to_move_pinch_to_zoom">Перетягніть, щоб перемістити; зведіть або розведіть пальці, щоб змінити масштаб</string>
     <string name="draw_outside_safe_area">Показувати поза безпечною областю</string>
-    <string name="rect_fill_disable_safe_area">Прямі кути без безпечної області</string>
-    <string name="rect_fill_disable_safe_area_description">Запитує в iPhone повноекранне зображення з прямими кутами. Спробуйте, якщо CarPlay залишає смугу біля краю екрана або показує колір шпалер у заокруглених кутах. Поки параметр увімкнено, безпечна область вище не використовується. Застосовується після «Зберегти й перепідключити».</string>
-    <string name="safe_area_disabled_rect_fill_summary">Безпечна область: вимк. (прямі кути, весь екран)</string>
+    <string name="display_corner_radius">Радіус кутів екрана</string>
+    <string name="display_corner_radius_value">%1$d%%</string>
+    <string name="display_corner_radius_square">Прямі кути</string>
+    <string name="display_corner_radius_description">Заокруглює кути зображення під рамку головного пристрою та зафарбовує чорним кути, які екран не може показати. Значення 0 — прямі кути, весь екран і без безпечної області. Застосовується після «Зберегти й перепідключити».</string>
+    <string name="display_corner_radius_description_square">Прямі кути: iPhone заповнює весь екран, безпечна область вище не використовується.</string>
+    <string name="settings_display_corner_radius_hint">Наскільки заокруглені кути зображення, у відсотках від короткої сторони екрана, щоб зображення збігалося з рамкою пристрою, а не залишало колір шпалер у кутах. Значення 0 залишає прямі кути, весь екран і без безпечної області. Застосовується при наступному підключенні.</string>
+    <string name="display_corner_radius_summary">Безпечна область: вимк. (форму екрана задає радіус кутів)</string>
     <string name="driving_side">Розташування керма</string>
     <string name="efficient_video">Ефективне відео</string>
     <string name="enable_the_car_s_bluetooth_and_pair_your_iphone_first">Увімкніть Bluetooth автомобіля та спочатку спарте iPhone.</string>

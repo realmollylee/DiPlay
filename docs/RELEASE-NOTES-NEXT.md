@@ -20,6 +20,8 @@ Changes through DiPlay 0.2.18 are documented in [0.2.18 release notes](RELEASE-N
 
 ## Display
 
+- The CarPlay picture has the head unit's rounded corners, and the square area a panel cannot show is black instead of the wallpaper colour. DiPlay tells the iPhone the picture may use the whole panel and paints the corners itself, so the picture meets the bezel rather than sitting in a rectangle inside it. **Settings → Display and performance → Display corner radius** sets the radius as a share of the shorter side, defaulting to 4%; the same control is in the in-car quick menu's **Safe area** card, where the corners preview while its slider moves. 0 keeps square corners, full screen and no safe area, which is what the former **Square corners, no safe area** switch asked for, so a saved choice carries over. The panel's shape is declared at the next connection, so choose **Reconnect now** when the settings screen offers it or **Save and reconnect** in the car. Pending in-car acceptance. [#578](https://github.com/shihabal3amri/DiPlay/issues/578)
+
 - Dialogs have a background again on Android 9 and older. Since 0.2.15, those versions drew Settings dialogs such as the car hotspot details without one, over the page behind them ([#640](https://github.com/shihabal3amri/DiPlay/issues/640), [#617](https://github.com/shihabal3amri/DiPlay/issues/617)). [#644](https://github.com/shihabal3amri/DiPlay/pull/644)
 - The custom dashboard turn card disappears 5 s after the driver ends navigation. It stayed on the last turn for up to two minutes ([#511](https://github.com/shihabal3amri/DiPlay/issues/511)). After a wireless connection drop, the card is still kept until guidance returns. Pending in-car acceptance. [#644](https://github.com/shihabal3amri/DiPlay/pull/644)
 

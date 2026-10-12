@@ -107,6 +107,7 @@ object AirPlayPersistence {
     private const val KEY_HARMAN_FULLSCREEN = "harman_fullscreen"
     private const val KEY_SAFE_AREA_DRAW_OUTSIDE = "safe_area_draw_outside"
     private const val KEY_MAIN_DISPLAY_DISABLE_SAFE_AREA = "main_display_disable_safe_area"
+    private const val KEY_DISPLAY_CORNER_RADIUS_PERCENT = "display_corner_radius_percent"
     private const val KEY_ADAPT_PIP_RESOLUTION = "adapt_pip_resolution"
     private const val KEY_AUTO_START_ON_BOOT = "auto_start_on_boot"
     private const val KEY_BT_SUSPEND_DURING_CARPLAY = "bt_suspend_during_carplay"
@@ -1272,16 +1273,30 @@ object AirPlayPersistence {
             .apply()
     }
 
-    /** Off by default: square full-screen video is for screens that show a gap or wallpaper corners (#578, #586). */
-    fun loadMainDisplayDisableSafeArea(context: Context): Boolean =
+    /** The stored display corner radius, in percent of the shorter side; see [DisplayCornerRadius]. */
+    fun loadDisplayCornerRadiusPercent(context: Context): Int =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_MAIN_DISPLAY_DISABLE_SAFE_AREA, false)
+            .getInt(KEY_DISPLAY_CORNER_RADIUS_PERCENT, DisplayCornerRadius.DEFAULT_PERCENT)
 
-    fun saveMainDisplayDisableSafeArea(context: Context, disable: Boolean) {
+    fun saveDisplayCornerRadiusPercent(context: Context, percent: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_MAIN_DISPLAY_DISABLE_SAFE_AREA, disable)
+            .putInt(KEY_DISPLAY_CORNER_RADIUS_PERCENT, percent)
             .apply()
     }
+
+    /** Whether the corner radius has been written, so [DisplayCornerRadius] can migrate the older switch. */
+    fun hasDisplayCornerRadiusPercent(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .contains(KEY_DISPLAY_CORNER_RADIUS_PERCENT)
+
+    /**
+     * The retired "Square corners, no safe area" switch (#578, #586). [DisplayCornerRadius] reads it
+     * once to carry its state over to a radius of 0; the app no longer offers the switch, so nothing
+     * writes it any more.
+     */
+    fun loadDisplayCornerRadiusLegacySquare(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_MAIN_DISPLAY_DISABLE_SAFE_AREA, false)
 
     fun loadSafeAreaRect(context: Context, widthPixels: Int, heightPixels: Int): SafeAreaRect? {
         require(widthPixels > 0 && heightPixels > 0) { "Activity dimensions must be positive" }

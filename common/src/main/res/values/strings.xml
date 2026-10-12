@@ -202,9 +202,13 @@
     <string name="done">Done</string>
     <string name="drag_to_move_pinch_to_zoom">Drag to move, pinch to zoom</string>
     <string name="draw_outside_safe_area">Draw outside safe area</string>
-    <string name="rect_fill_disable_safe_area">Square corners, no safe area</string>
-    <string name="rect_fill_disable_safe_area_description">Asks the iPhone for a full-screen picture with square corners. Try it when CarPlay leaves a strip at an edge or shows the wallpaper color in its rounded corners. The safe area above is not used while this is on. Applies after Save and reconnect.</string>
-    <string name="safe_area_disabled_rect_fill_summary">Safe area: off (square corners, full screen)</string>
+    <string name="display_corner_radius">Display corner radius</string>
+    <string name="display_corner_radius_value">%1$d%%</string>
+    <string name="display_corner_radius_square">Square</string>
+    <string name="display_corner_radius_description">Rounds the picture\'s corners so they meet the head unit\'s own bezel, and paints the corners the panel cannot show black. Set 0 for square corners, full screen and no safe area. Applies after Save and reconnect.</string>
+    <string name="display_corner_radius_description_square">Square corners: the iPhone fills the whole panel and the safe area above is not used.</string>
+    <string name="settings_display_corner_radius_hint">How far the picture\'s corners are rounded, as a percentage of the screen\'s shorter side, so the picture meets the head unit\'s bezel instead of leaving the wallpaper colour in the corners. 0 keeps square corners, full screen and no safe area. Applies at the next connection.</string>
+    <string name="display_corner_radius_summary">Safe area: off (the display corner radius declares the panel\'s shape)</string>
     <string name="driving_side">Driving side</string>
     <string name="efficient_video">Efficient video</string>
     <string name="enable_the_car_s_bluetooth_and_pair_your_iphone_first">Enable the car’s Bluetooth and pair your iPhone first.</string>

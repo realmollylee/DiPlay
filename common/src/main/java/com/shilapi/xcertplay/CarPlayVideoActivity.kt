@@ -63,6 +63,7 @@ class CarPlayVideoActivity : Activity() {
     private lateinit var length: TextView
     private lateinit var timeBar: SeekBar
     private var scrubbing = false
+    private var cornerMask: DisplayCornerMask? = null
     private var loadedUrl: String? = null
     private var prepared = false
     private var encryptionLogged = false
@@ -118,6 +119,14 @@ class CarPlayVideoActivity : Activity() {
             setBackgroundColor(Color.BLACK)
             addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
             addView(controls, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            // The player fills the window, so its corners are the display's.
+            cornerMask = DisplayCornerMask.attach(this)
+            addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+                val mask = cornerMask ?: return@addOnLayoutChangeListener
+                mask.radiusPx = DisplayCornerRadius.radiusPx(
+                    DisplayCornerRadius.loadPercent(this@CarPlayVideoActivity), right - left, bottom - top)
+                mask.setContent(0f, 0f, (right - left).toFloat(), (bottom - top).toFloat())
+            }
         })
         view.setOnClickListener { showControls() }
         CarPlayVideo.activity = this

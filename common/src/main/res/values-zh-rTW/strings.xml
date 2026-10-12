@@ -195,9 +195,13 @@
     <string name="done">完成</string>
     <string name="drag_to_move_pinch_to_zoom">拖曳以移動，雙指縮放</string>
     <string name="draw_outside_safe_area">允許繪製到安全區域外</string>
-    <string name="rect_fill_disable_safe_area">直角鋪滿，不使用安全區域</string>
-    <string name="rect_fill_disable_safe_area_description">請求 iPhone 傳送直角的全螢幕畫面。若 CarPlay 在螢幕邊緣留下空白條，或在圓角處顯示桌布顏色，可以嘗試開啟。開啟時不使用上方的安全區域。儲存並重新連線後生效。</string>
-    <string name="safe_area_disabled_rect_fill_summary">安全區域：已關閉（直角鋪滿）</string>
+    <string name="display_corner_radius">螢幕圓角半徑</string>
+    <string name="display_corner_radius_value">%1$d%%</string>
+    <string name="display_corner_radius_square">直角</string>
+    <string name="display_corner_radius_description">將畫面四角收圓，與車機邊框貼合，並把螢幕無法顯示的角塗黑。設為 0 即直角鋪滿、不使用安全區域。儲存並重新連線後生效。</string>
+    <string name="display_corner_radius_description_square">直角：iPhone 鋪滿整塊螢幕，不使用上方的安全區域。</string>
+    <string name="settings_display_corner_radius_hint">畫面四角的收圓程度，取螢幕短邊的百分比，讓畫面與車機邊框貼合，而不是在四角留下桌布顏色。設為 0 則保持直角鋪滿、不使用安全區域。下次連線時生效。</string>
+    <string name="display_corner_radius_summary">安全區域：已關閉（由螢幕圓角半徑決定螢幕形狀）</string>
     <string name="driving_side">駕駛座位置</string>
     <string name="efficient_video">高效率影片</string>
     <string name="enable_the_car_s_bluetooth_and_pair_your_iphone_first">請先開啟車機藍牙並配對 iPhone。</string>

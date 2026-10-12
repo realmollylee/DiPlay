@@ -402,7 +402,10 @@ class CarPlayHostActivity : ComponentActivity() {
     private var harmanFullscreenEnabled = false
     private var harmanFullscreenApplied = false
     private var safeAreaDrawOutside = true
-    private var mainDisplayDisableSafeArea = false
+    /** Percent of the shorter side; 0 keeps square corners. See [DisplayCornerRadius]. */
+    private var displayCornerRadiusPercent = DisplayCornerRadius.DEFAULT_PERCENT
+    /** Paints the panel's corners over the picture; null until the content view is built. */
+    private var cornerMask: DisplayCornerMask? = null
     private var locationReportingEnabled = false
     private var locationPermissionAvailable = false
     private var microphoneAvailable = false
@@ -750,7 +753,7 @@ class CarPlayHostActivity : ComponentActivity() {
         hideBottomBar = AirPlayPersistence.loadHideBottomBar(this)
         harmanFullscreenEnabled = AirPlayPersistence.loadHarmanFullscreen(this)
         safeAreaDrawOutside = AirPlayPersistence.loadSafeAreaDrawOutside(this)
-        mainDisplayDisableSafeArea = AirPlayPersistence.loadMainDisplayDisableSafeArea(this)
+        displayCornerRadiusPercent = DisplayCornerRadius.loadPercent(this)
         locationPermissionAvailable = hasFineLocationPermission()
         loadConnectionSettings()
         wirelessPermissionsReady = !wirelessEnabled || hasRequiredWirelessPermissions()
@@ -976,6 +979,15 @@ class CarPlayHostActivity : ComponentActivity() {
         // The settings screen returns here with FLAG_ACTIVITY_REORDER_TO_FRONT, so this screen is
         // resumed, not recreated: refresh what that screen can change before it is used again.
         if (!menuOpen) loadConnectionSettings()
+        // The settings screen owns a corner-radius control too, so re-read it here and redraw the mask:
+        // otherwise the corners on screen would keep the value this screen was created with.
+        if (!menuOpen) {
+            val savedCornerRadius = DisplayCornerRadius.loadPercent(this)
+            if (savedCornerRadius != displayCornerRadiusPercent) {
+                displayCornerRadiusPercent = savedCornerRadius
+                videoView?.let { updateVideoLayout(it.width, it.height) }
+            }
+        }
         locationPermissionAvailable = hasFineLocationPermission()
         if (locationReportingEnabled && !locationPermissionAvailable && !menuOpen) {
             requestLocationPermission()
@@ -1750,6 +1762,13 @@ class CarPlayHostActivity : ComponentActivity() {
         safeAreaEditor = buildSafeAreaEditor().apply { visibility = View.GONE }
         root.addView(safeAreaEditor, FrameLayout.LayoutParams(-1, -1))
         videoView = video
+        // Added last so the picture's child indices stay as they are. [updateCornerMask] then keeps it
+        // above every sibling, including a video surface this host replaces, so it is put in front of
+        // the overlays that were added before it and would otherwise lose their corner to the mask.
+        cornerMask = DisplayCornerMask.attach(root)
+        // A large radius reaches past the counter's inset, so it stays above the corners. It is a
+        // diagnostic overlay: it may cover part of one, but a corner must not cover it.
+        (fpsCounter?.view?.parent as? ViewGroup)?.bringChildToFront(fpsCounter?.view)
         smoothVideo = AirPlayPersistence.loadSmoothVideo(this)
         directVideoOutput = AirPlayPersistence.loadDirectVideoOutput(this)
         observeVideoWindow(video)
@@ -2990,7 +3009,7 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveHideTopBar(this, hideTopBar)
         AirPlayPersistence.saveHideBottomBar(this, hideBottomBar)
         AirPlayPersistence.saveSafeAreaDrawOutside(this, safeAreaDrawOutside)
-        AirPlayPersistence.saveMainDisplayDisableSafeArea(this, mainDisplayDisableSafeArea)
+        DisplayCornerRadius.savePercent(this, displayCornerRadiusPercent)
     }
 
     /** Mirrors [persistMenuSettings]: a field staged there belongs here too. */
@@ -3001,7 +3020,8 @@ class CarPlayHostActivity : ComponentActivity() {
         locationReportingEnabled, autoStartOnBoot, advancedAudioChannelMapping, displayScaleTenths,
         displayScalePercent, fps, widthPhysicalMm, physicalSizeBasis, hevcEnabled,
         hevcSoftwareDecoderEnabled, manufacturer, model, oemLabel, debugLogsEnabled, rightHandDrive,
-        carPlayDock, hideTopBar, hideBottomBar, safeAreaDrawOutside, mainDisplayDisableSafeArea,
+        carPlayDock, hideTopBar, hideBottomBar, safeAreaDrawOutside,
+        displayCornerRadiusPercent,
     ).joinToString("|").hashCode()
 
     private fun captureSettingsBaseline(): SettingsBaseline {
@@ -3064,6 +3084,8 @@ class CarPlayHostActivity : ComponentActivity() {
             applyFullscreenMode()
             refreshDisplaySizeAfterLayout()
         }
+        // A cancelled radius edit previewed corners that are no longer the saved ones.
+        videoView?.let { updateVideoLayout(it.width, it.height) }
     }
 
     private fun buildMfiTargetSection(): View {
@@ -3685,15 +3707,7 @@ class CarPlayHostActivity : ComponentActivity() {
             ).apply { topMargin = dp(12) },
         )
         section.addView(
-            settingsSwitchRow(
-                label = getString(R.string.rect_fill_disable_safe_area),
-                checked = mainDisplayDisableSafeArea,
-                description = getString(R.string.rect_fill_disable_safe_area_description),
-            ) { checked ->
-                mainDisplayDisableSafeArea = checked
-                updateSafeAreaSummary()
-                updateResolutionMenu()
-            },
+            settingsCornerRadiusRow(),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -3702,6 +3716,88 @@ class CarPlayHostActivity : ComponentActivity() {
         safeAreaSummaryView = summary
         updateSafeAreaSummary()
         return section
+    }
+
+    /** The slider's value text: the percentage, or that the corners are square. */
+    private fun cornerRadiusLabel(percent: Int): String =
+        if (percent <= 0) getString(R.string.display_corner_radius_square)
+        else getString(R.string.display_corner_radius_value, percent)
+
+    private fun cornerRadiusDescription(percent: Int): String =
+        if (percent <= 0) getString(R.string.display_corner_radius_description_square)
+        else getString(R.string.display_corner_radius_description)
+
+    /**
+     * A slider rather than a switch: the radius that matches a panel's bezel differs per head unit, and
+     * the driver can see the corners change while dragging.
+     *
+     * It stages the value like every other control in this menu. **Save and reconnect** stores it and
+     * restarts the session, which is when the iPhone is told the panel's shape; **Cancel** puts the
+     * previous corners back through [restoreSettingsBaseline].
+     */
+    private fun settingsCornerRadiusRow(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val value = menuText(cornerRadiusLabel(displayCornerRadiusPercent), 20f, MENU_ACCENT)
+        val description = menuText(
+            cornerRadiusDescription(displayCornerRadiusPercent), 14f, MENU_SECONDARY)
+        val seekBar = SeekBar(this).apply {
+            max = DisplayCornerRadius.MAX_PERCENT - DisplayCornerRadius.MIN_PERCENT
+            progress = displayCornerRadiusPercent - DisplayCornerRadius.MIN_PERCENT
+            splitTrack = false
+            progressTintList = ColorStateList.valueOf(MENU_ACCENT)
+            thumbTintList = ColorStateList.valueOf(MENU_ACCENT)
+            contentDescription = description.text
+        }
+        header.addView(
+            menuText(getString(R.string.display_corner_radius), 20f, MENU_SECONDARY),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        header.addView(value, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                val percent = DisplayCornerRadius.clampPercent(
+                    DisplayCornerRadius.MIN_PERCENT + progress)
+                value.text = cornerRadiusLabel(percent)
+                description.text = cornerRadiusDescription(percent)
+                // Preview the corners here; the iPhone hears about them when the menu is saved.
+                displayCornerRadiusPercent = percent
+                videoView?.let { updateVideoLayout(it.width, it.height) }
+                updateSafeAreaSummary()
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar) = Unit
+
+            override fun onStopTrackingTouch(bar: SeekBar) = Unit
+        })
+        row.addView(
+            header,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(4) },
+        )
+        row.addView(
+            seekBar,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(4) },
+        )
+        row.addView(
+            description,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        return row
     }
 
     private fun buildSafeAreaEditor(): View {
@@ -4357,8 +4453,14 @@ class CarPlayHostActivity : ComponentActivity() {
             }
         }
         appendLog("CarPlay size=${CarPlayUiScale.label(uiScalePercent)} canvas=${scaledDisplay.widthPixels}x${scaledDisplay.heightPixels}")
+        // A radius tells the iPhone the picture may use the whole panel. The rounded corners the
+        // iPhone would otherwise draw over the wallpaper colour are then painted black by
+        // [DisplayCornerMask], so a square stream still meets the head unit's own rounded bezel.
+        // A radius of 0 is the old "square corners, no safe area" request: the iPhone fills the panel
+        // and draws right angles, and no mask is painted.
+        val cornerMasks = displayCornerRadiusPercent > 0
         val display = scaledDisplay.copy(
-            safeArea = if (mainDisplayDisableSafeArea) null else AirPlaySafeArea.toInsets(
+            safeArea = if (cornerMasks) null else AirPlaySafeArea.toInsets(
                 mapping = AirPlayPersistence.loadSafeAreaRect(this, size.width, size.height),
                 activityWidthPixels = size.width,
                 activityHeightPixels = size.height,
@@ -4366,8 +4468,8 @@ class CarPlayHostActivity : ComponentActivity() {
                 displayHeightPixels = scaledDisplay.heightPixels,
             ),
             safeAreaDrawOutside = safeAreaDrawOutside,
-            mainDisplayCornerMasks = if (mainDisplayDisableSafeArea) true else null,
-            mainDisplayDisableSafeArea = mainDisplayDisableSafeArea,
+            mainDisplayCornerMasks = if (cornerMasks) true else null,
+            mainDisplayDisableSafeArea = cornerMasks,
         )
         // A fixed dock, split-screen support or a turning screen declares several areas the car switches
         // between live. A session that starts in split screen sizes its canvas to that window, so it keeps
@@ -4550,8 +4652,10 @@ class CarPlayHostActivity : ComponentActivity() {
         )
 
     private fun safeAreaSummary(): String {
-        if (mainDisplayDisableSafeArea) {
-            return getString(R.string.safe_area_disabled_rect_fill_summary)
+        // A radius declares the panel's shape and replaces the safe area, so it is what the summary
+        // reports while it is on. A radius of 0 keeps the corners square and the safe area in use.
+        if (displayCornerRadiusPercent > 0) {
+            return getString(R.string.display_corner_radius_summary)
         }
         val size = currentActivitySize() ?: return getString(R.string.safe_area_waiting_for_activity_size)
         val mapping = AirPlayPersistence.loadSafeAreaRect(this, size.width, size.height)
@@ -5265,6 +5369,25 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         if (sidePanelShown) placeSidePanel(viewWidth, viewHeight)
         placeSidePanelTab(viewWidth, viewHeight)
+        updateCornerMask(content)
+    }
+
+    /**
+     * Rounds the panel's corners over the picture. The mask is a sibling of the video view, so it
+     * follows the fitted content rectangle: a letterboxed picture keeps its bars, and the corners
+     * are painted where the screen itself curves.
+     */
+    private fun updateCornerMask(content: CarPlayVideoLayout) {
+        val mask = cornerMask ?: return
+        mask.radiusPx = DisplayCornerRadius.radiusPx(
+            displayCornerRadiusPercent,
+            content.width.roundToInt(),
+            content.height.roundToInt(),
+        )
+        mask.setContent(content.left, content.top, content.left + content.width, content.top + content.height)
+        // Above the picture, whose view the host may have replaced, and above the overlays so no bar or
+        // panel pokes into a rounded corner.
+        (mask.parent as? ViewGroup)?.bringChildToFront(mask)
     }
 
     private fun recordDetectedMaximum(size: DisplaySize) {
